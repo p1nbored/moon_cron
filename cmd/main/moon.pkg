@@ -1,0 +1,7 @@
+import {
+  "p1nbored/moon_cron" @cron,
+}
+
+options(
+  "is-main": true,
+)
