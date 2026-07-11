@@ -4,3 +4,8 @@ target/
 target
 .mooncakes/
 .moonagent/
+
+# Local contest application materials; complete and submit them outside Git.
+PROJECT_APPLICATION.md
+SUBMISSION.md
+SUBMISSION_GUIDE.md
