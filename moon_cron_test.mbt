@@ -28,3 +28,13 @@ test "built-in presets have stable expressions" {
   assert_eq(@moon_cron.hourly().to_expression(), "0 * * * *")
   assert_eq(@moon_cron.weekday_hourly().to_expression(), "0 * * * 1-5")
 }
+
+///|
+test "restricted day fields use cron OR semantics" {
+  let cron = @moon_cron.parse("0 9 1 * 1").unwrap()
+  // First day of the month, even though it is not Monday.
+  assert_true(cron.matches(@moon_cron.UtcTime::new(0, 9, 1, 8, 2)))
+  // A Monday, even though it is not the first day of the month.
+  assert_true(cron.matches(@moon_cron.UtcTime::new(0, 9, 8, 8, 1)))
+  assert_false(cron.matches(@moon_cron.UtcTime::new(0, 9, 8, 8, 2)))
+}
