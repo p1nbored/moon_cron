@@ -1,0 +1,26 @@
+name: MoonBit CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Check all stable targets
+        run: moon check --target all --deny-warn
+      - name: Run tests on all stable targets
+        run: moon test --target all --deny-warn
+      - name: Ensure formatting is clean
+        run: moon fmt --check
+      - name: Generate package interfaces
+        run: moon info
