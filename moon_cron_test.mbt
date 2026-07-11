@@ -16,3 +16,9 @@ test "reject invalid cron fields" {
   assert_true(@moon_cron.parse("*/0 * * * *") is Err(_))
   assert_true(@moon_cron.parse("9-2 * * * *") is Err(_))
 }
+
+///|
+test "parsed schedules round-trip to a portable expression" {
+  let schedule = @moon_cron.parse("*/15 9-17 1-10/2 * 1-5").unwrap()
+  assert_eq(schedule.to_expression(), "*/15 9-17 1-10/2 * 1-5")
+}

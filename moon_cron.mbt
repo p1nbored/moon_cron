@@ -184,6 +184,19 @@ pub fn Field::matches(self : Field, value : Int) -> Bool {
 }
 
 ///|
+/// Render a field in the portable expression subset accepted by `parse`.
+pub fn Field::to_expression(self : Field) -> String {
+  match self {
+    Any => "*"
+    Exact(value) => value.to_string()
+    Every(step) => "*/" + step.to_string()
+    Range(start, end) => start.to_string() + "-" + end.to_string()
+    RangeEvery(start, end, step) =>
+      start.to_string() + "-" + end.to_string() + "/" + step.to_string()
+  }
+}
+
+///|
 /// Check whether a UTC wall-clock minute satisfies this schedule. When both
 /// day-of-month and weekday are restricted, standard cron's OR rule is used.
 pub fn Cron::matches(self : Cron, time : UtcTime) -> Bool {
@@ -199,4 +212,19 @@ pub fn Cron::matches(self : Cron, time : UtcTime) -> Bool {
   self.hour.matches(time.hour) &&
   self.month.matches(time.month) &&
   calendar_matches
+}
+
+///|
+pub fn Cron::to_expression(self : Cron) -> String {
+  let writer = StringBuilder::new()
+  writer.write_string(self.minute.to_expression())
+  writer.write_char(' ')
+  writer.write_string(self.hour.to_expression())
+  writer.write_char(' ')
+  writer.write_string(self.day_of_month.to_expression())
+  writer.write_char(' ')
+  writer.write_string(self.month.to_expression())
+  writer.write_char(' ')
+  writer.write_string(self.weekday.to_expression())
+  writer.to_string()
 }
