@@ -1,3 +1,7 @@
 #!/bin/sh
 
-moon check
+set -eu
+
+moon check --target all --deny-warn
+moon test --target all --deny-warn
+moon fmt --check
