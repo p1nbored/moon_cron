@@ -2,11 +2,11 @@
 /// A clock value expressed in UTC. `weekday` uses cron's conventional values:
 /// Sunday is 0 and Saturday is 6.
 pub struct UtcTime {
-  pub minute : Int
-  pub hour : Int
-  pub day_of_month : Int
-  pub month : Int
-  pub weekday : Int
+  minute : Int
+  hour : Int
+  day_of_month : Int
+  month : Int
+  weekday : Int
 } derive(Eq, Debug)
 
 ///|
@@ -24,18 +24,17 @@ pub enum CronError {
   InvalidNumber(String)
   ValueOutOfRange(String, Int, Int)
   InvalidRange(String)
-  InvalidStep(String)
   UnsupportedSyntax(String)
 } derive(Eq, Debug)
 
 ///|
 /// A five-field cron schedule: minute, hour, day-of-month, month and weekday.
 pub struct Cron {
-  pub minute : Field
-  pub hour : Field
-  pub day_of_month : Field
-  pub month : Field
-  pub weekday : Field
+  minute : Field
+  hour : Field
+  day_of_month : Field
+  month : Field
+  weekday : Field
 } derive(Eq, Debug)
 
 ///|
@@ -159,4 +158,34 @@ pub fn parse(expression : String) -> Result[Cron, CronError] {
     (_, _, _, Err(error), _) => Err(error)
     (_, _, _, _, Err(error)) => Err(error)
   }
+}
+
+///|
+pub fn Field::matches(self : Field, value : Int) -> Bool {
+  match self {
+    Any => true
+    Exact(expected) => value == expected
+    Every(step) => value % step == 0
+    Range(start, end) => value >= start && value <= end
+    RangeEvery(start, end, step) =>
+      value >= start && value <= end && (value - start) % step == 0
+  }
+}
+
+///|
+/// Check whether a UTC wall-clock minute satisfies this schedule. When both
+/// day-of-month and weekday are restricted, standard cron's OR rule is used.
+pub fn Cron::matches(self : Cron, time : UtcTime) -> Bool {
+  let day_matches = self.day_of_month.matches(time.day_of_month)
+  let weekday_matches = self.weekday.matches(time.weekday)
+  let calendar_matches = match (self.day_of_month, self.weekday) {
+    (Any, Any) => true
+    (Any, _) => weekday_matches
+    (_, Any) => day_matches
+    _ => day_matches || weekday_matches
+  }
+  self.minute.matches(time.minute)
+  && self.hour.matches(time.hour)
+  && self.month.matches(time.month)
+  && calendar_matches
 }
