@@ -228,3 +228,21 @@ pub fn Cron::to_expression(self : Cron) -> String {
   writer.write_string(self.weekday.to_expression())
   writer.to_string()
 }
+
+///|
+/// A schedule that fires at minute zero of every hour.
+pub fn hourly() -> Cron {
+  { minute: Exact(0), hour: Any, day_of_month: Any, month: Any, weekday: Any }
+}
+
+///|
+/// A schedule that fires at minute zero on every weekday hour.
+pub fn weekday_hourly() -> Cron {
+  {
+    minute: Exact(0),
+    hour: Any,
+    day_of_month: Any,
+    month: Any,
+    weekday: Range(1, 5),
+  }
+}

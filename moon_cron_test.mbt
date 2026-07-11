@@ -22,3 +22,9 @@ test "parsed schedules round-trip to a portable expression" {
   let schedule = @moon_cron.parse("*/15 9-17 1-10/2 * 1-5").unwrap()
   assert_eq(schedule.to_expression(), "*/15 9-17 1-10/2 * 1-5")
 }
+
+///|
+test "built-in presets have stable expressions" {
+  assert_eq(@moon_cron.hourly().to_expression(), "0 * * * *")
+  assert_eq(@moon_cron.weekday_hourly().to_expression(), "0 * * * 1-5")
+}
