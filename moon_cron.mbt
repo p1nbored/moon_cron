@@ -10,6 +10,17 @@ pub struct UtcTime {
 } derive(Eq, Debug)
 
 ///|
+pub fn UtcTime::new(
+  minute : Int,
+  hour : Int,
+  day_of_month : Int,
+  month : Int,
+  weekday : Int,
+) -> UtcTime {
+  { minute, hour, day_of_month, month, weekday }
+}
+
+///|
 pub enum Field {
   Any
   Exact(Int)
@@ -184,8 +195,8 @@ pub fn Cron::matches(self : Cron, time : UtcTime) -> Bool {
     (_, Any) => day_matches
     _ => day_matches || weekday_matches
   }
-  self.minute.matches(time.minute)
-  && self.hour.matches(time.hour)
-  && self.month.matches(time.month)
-  && calendar_matches
+  self.minute.matches(time.minute) &&
+  self.hour.matches(time.hour) &&
+  self.month.matches(time.month) &&
+  calendar_matches
 }
