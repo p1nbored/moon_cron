@@ -6,7 +6,23 @@ import {
 }
 
 // Values
+pub fn daily_at(Int, Int) -> Result[Cron, CronError]
+
+pub fn days_in_month(Int, Int) -> Int
+
+pub fn every_minute() -> Cron
+
+pub fn hourly() -> Cron
+
+pub fn is_leap_year(Int) -> Bool
+
+pub fn monthly_on(Int, Int, Int) -> Result[Cron, CronError]
+
 pub fn parse(String) -> Result[Cron, CronError]
+
+pub fn weekday_hourly() -> Cron
+
+pub fn weekly_on(Int, Int, Int) -> Result[Cron, CronError]
 
 // Errors
 
@@ -18,14 +34,21 @@ pub struct Cron {
   month : Field
   weekday : Field
 } derive(Eq, @debug.Debug)
+pub fn Cron::describe(Self) -> String
 pub fn Cron::matches(Self, UtcTime) -> Bool
+pub fn Cron::matches_at(Self, UtcDateTime) -> Bool
+pub fn Cron::next_after(Self, UtcDateTime) -> UtcDateTime?
+pub fn Cron::next_occurrences(Self, UtcDateTime, Int) -> Array[UtcDateTime]
+pub fn Cron::to_expression(Self) -> String
 
 pub enum CronError {
   WrongFieldCount(Int)
   InvalidNumber(String)
+  UnknownName(String)
   ValueOutOfRange(String, Int, Int)
   InvalidRange(String)
   UnsupportedSyntax(String)
+  InvalidDate(String)
 } derive(Eq, @debug.Debug)
 
 pub enum Field {
@@ -34,8 +57,21 @@ pub enum Field {
   Every(Int)
   Range(Int, Int)
   RangeEvery(Int, Int, Int)
+  List(Array[Field])
 } derive(Eq, @debug.Debug)
-pub fn Field::matches(Self, Int) -> Bool
+pub fn Field::matches(Self, Int, lower? : Int) -> Bool
+pub fn Field::to_expression(Self) -> String
+
+pub struct UtcDateTime {
+  year : Int
+  month : Int
+  day : Int
+  hour : Int
+  minute : Int
+} derive(Compare, Eq, @debug.Debug)
+pub fn UtcDateTime::new(Int, Int, Int, Int, Int) -> Result[Self, CronError]
+pub fn UtcDateTime::to_utc_time(Self) -> UtcTime
+pub fn UtcDateTime::weekday(Self) -> Int
 
 pub struct UtcTime {
   minute : Int
