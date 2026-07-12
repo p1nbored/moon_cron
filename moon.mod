@@ -19,6 +19,6 @@ repository = "https://github.com/p1nbored/moon_cron"
 
 license = "Apache-2.0"
 
-keywords = [ ]
+keywords = [ "cron", "schedule", "scheduler", "time", "parser" ]
 
 description = "A dependency-free cron expression parser and schedule matcher for MoonBit."
