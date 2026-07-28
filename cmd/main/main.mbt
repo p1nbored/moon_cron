@@ -40,4 +40,19 @@ fn main {
     }
     Err(_) => println("invalid built-in example")
   }
+  let document = @cron.parse_crontab(
+    (
+      #|SHELL=/bin/sh
+      #|*/15 9-17 * * MON-FRI collect-metrics
+      #|0 9-17 * * MON-FRI refresh-dashboard
+    ),
+  ).unwrap()
+  println("\ncrontab entries: \{document.entry_count()}")
+  println("shell          : \{document.variable("SHELL").unwrap()}")
+  let book = document.to_schedule_book()
+  let report_range = @cron.DateTimeRange::new(
+    @cron.parse_utc_datetime("2026-07-27T09:00Z").unwrap(),
+    @cron.parse_utc_datetime("2026-07-27T10:00Z").unwrap(),
+  ).unwrap()
+  println("\n\{book.report(report_range).to_text()}")
 }

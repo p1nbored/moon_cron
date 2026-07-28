@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn analyze_collision(NamedSchedule, NamedSchedule, DateTimeRange, limit? : Int) -> CollisionStatistics
+
+pub fn analyze_schedule(NamedSchedule, DateTimeRange, limit? : Int) -> ScheduleStatistics
+
 pub fn daily_at(Int, Int) -> Result[Cron, CronError]
 
 pub fn days_in_month(Int, Int) -> Int
@@ -20,6 +24,12 @@ pub fn monthly_on(Int, Int, Int) -> Result[Cron, CronError]
 
 pub fn parse(String) -> Result[Cron, CronError]
 
+pub fn parse_crontab(String) -> Result[CrontabDocument, CronError]
+
+pub fn parse_utc_date(String) -> Result[UtcDate, CronError]
+
+pub fn parse_utc_datetime(String) -> Result[UtcDateTime, CronError]
+
 pub fn weekday_hourly() -> Cron
 
 pub fn weekly_on(Int, Int, Int) -> Result[Cron, CronError]
@@ -27,6 +37,15 @@ pub fn weekly_on(Int, Int, Int) -> Result[Cron, CronError]
 // Errors
 
 // Types and methods
+pub struct CollisionStatistics {
+  left_name : String
+  right_name : String
+  count : Int
+  first : UtcDateTime?
+  last : UtcDateTime?
+  truncated : Bool
+} derive(Eq, @debug.Debug)
+
 pub struct Cron {
   minute : Field
   hour : Field
@@ -34,12 +53,31 @@ pub struct Cron {
   month : Field
   weekday : Field
 } derive(Eq, @debug.Debug)
+pub fn Cron::collides_with(Self, Self, DateTimeRange) -> Bool
+pub fn Cron::collisions_with(Self, Self, DateTimeRange, limit? : Int) -> Array[ScheduleCollision]
+pub fn Cron::count_occurrences(Self, DateTimeRange, limit? : Int) -> OccurrenceCount
+pub fn Cron::daily_counts(Self, DateTimeRange, occurrence_limit? : Int) -> Array[DailyOccurrenceCount]
 pub fn Cron::describe(Self) -> String
+pub fn Cron::field_summary(Self) -> CronFieldSummary
+pub fn Cron::first_occurrence(Self, DateTimeRange) -> UtcDateTime?
+pub fn Cron::from_fields(Field, Field, Field, Field, Field) -> Result[Self, CronError]
+pub fn Cron::gap_summary(Self, DateTimeRange, sample_limit? : Int) -> OccurrenceGapSummary?
+pub fn Cron::has_occurrence(Self, DateTimeRange) -> Bool
+pub fn Cron::last_occurrence(Self, DateTimeRange) -> UtcDateTime?
 pub fn Cron::matches(Self, UtcTime) -> Bool
 pub fn Cron::matches_at(Self, UtcDateTime) -> Bool
+pub fn Cron::maximum_daily_runs(Self) -> Int
+pub fn Cron::may_overlap(Self, Self) -> Bool
 pub fn Cron::next_after(Self, UtcDateTime) -> UtcDateTime?
 pub fn Cron::next_occurrences(Self, UtcDateTime, Int) -> Array[UtcDateTime]
+pub fn Cron::next_on_or_after(Self, UtcDateTime) -> UtcDateTime?
+pub fn Cron::normalized(Self) -> Self
+pub fn Cron::occurrence_page(Self, UtcDateTime, UtcDateTime, Int) -> Result[OccurrencePage, CronError]
+pub fn Cron::occurrences(Self, OccurrenceQuery) -> Array[UtcDateTime]
+pub fn Cron::previous_before(Self, UtcDateTime) -> UtcDateTime?
+pub fn Cron::previous_on_or_before(Self, UtcDateTime) -> UtcDateTime?
 pub fn Cron::to_expression(Self) -> String
+pub fn Cron::validate(Self) -> Result[Unit, CronError]
 
 pub enum CronError {
   WrongFieldCount(Int)
@@ -49,6 +87,97 @@ pub enum CronError {
   InvalidRange(String)
   UnsupportedSyntax(String)
   InvalidDate(String)
+  InvalidField(String)
+  InvalidWindow(String)
+  DuplicateSchedule(String)
+  MissingSchedule(String)
+  InvalidCrontabLine(Int, String)
+} derive(Eq, @debug.Debug)
+
+pub struct CronFieldSummary {
+  minute_values : Int
+  hour_values : Int
+  day_of_month_values : Int
+  month_values : Int
+  weekday_values : Int
+  unrestricted_fields : Int
+} derive(Eq, @debug.Debug)
+
+pub struct CrontabDocument {
+  lines : Array[CrontabLine]
+} derive(Eq, @debug.Debug)
+pub fn CrontabDocument::all_lines(Self) -> Array[CrontabLine]
+pub fn CrontabDocument::append_blank(Self) -> Unit
+pub fn CrontabDocument::append_comment(Self, String) -> Unit
+pub fn CrontabDocument::append_entry(Self, CrontabEntry) -> Unit
+pub fn CrontabDocument::append_variable(Self, CrontabVariable) -> Unit
+pub fn CrontabDocument::comment_count(Self) -> Int
+pub fn CrontabDocument::comments(Self) -> Array[String]
+pub fn CrontabDocument::compact(Self) -> Self
+pub fn CrontabDocument::due_at(Self, UtcDateTime) -> Array[CrontabEntry]
+pub fn CrontabDocument::entries(Self) -> Array[CrontabEntry]
+pub fn CrontabDocument::entry_count(Self) -> Int
+pub fn CrontabDocument::find_commands(Self, String) -> Array[CrontabEntry]
+pub fn CrontabDocument::from_lines(Array[CrontabLine]) -> Self
+pub fn CrontabDocument::line_count(Self) -> Int
+pub fn CrontabDocument::new() -> Self
+pub fn CrontabDocument::to_schedule_book(Self) -> ScheduleBook
+pub fn CrontabDocument::to_text(Self) -> String
+pub fn CrontabDocument::variable(Self, String) -> String?
+pub fn CrontabDocument::variable_count(Self) -> Int
+pub fn CrontabDocument::variables(Self) -> Array[CrontabVariable]
+
+pub struct CrontabEntry {
+  schedule_text : String
+  cron : Cron
+  command : String
+  line_number : Int
+} derive(Eq, @debug.Debug)
+pub fn CrontabEntry::matches_at(Self, UtcDateTime) -> Bool
+pub fn CrontabEntry::new(String, String, line_number? : Int) -> Result[Self, CronError]
+pub fn CrontabEntry::with_command(Self, String) -> Result[Self, CronError]
+pub fn CrontabEntry::with_schedule(Self, String) -> Result[Self, CronError]
+
+pub(all) enum CrontabLine {
+  Blank
+  Comment(String)
+  Variable(CrontabVariable)
+  Entry(CrontabEntry)
+} derive(Eq, @debug.Debug)
+
+pub struct CrontabVariable {
+  name : String
+  value : String
+  line_number : Int
+} derive(Eq, @debug.Debug)
+pub fn CrontabVariable::new(String, String, line_number? : Int) -> Result[Self, CronError]
+
+pub struct DailyLoad {
+  date : UtcDate
+  event_count : Int
+  active_minutes : Int
+  peak_concurrency : Int
+} derive(Eq, @debug.Debug)
+
+pub struct DailyOccurrenceCount {
+  date : UtcDate
+  count : Int
+} derive(Eq, @debug.Debug)
+
+pub struct DateTimeRange {
+  start : UtcDateTime
+  end : UtcDateTime
+} derive(Eq, @debug.Debug)
+pub fn DateTimeRange::chunks(Self, Int) -> Array[Self]
+pub fn DateTimeRange::contains(Self, UtcDateTime) -> Bool
+pub fn DateTimeRange::intersection(Self, Self) -> Self?
+pub fn DateTimeRange::minute_count(Self) -> Int
+pub fn DateTimeRange::new(UtcDateTime, UtcDateTime) -> Result[Self, CronError]
+pub fn DateTimeRange::overlaps(Self, Self) -> Bool
+
+pub struct EventBatch {
+  at : UtcDateTime
+  schedule_names : Array[String]
 } derive(Eq, @debug.Debug)
 
 pub enum Field {
@@ -59,8 +188,266 @@ pub enum Field {
   RangeEvery(Int, Int, Int)
   List(Array[Field])
 } derive(Eq, @debug.Debug)
+pub fn Field::any() -> Self
+pub fn Field::cardinality(Self, FieldDomain) -> Int
+pub fn Field::difference(Self, Self, FieldDomain) -> Self
+pub fn Field::equivalent_to(Self, Self, FieldDomain) -> Bool
+pub fn Field::every(Int) -> Self
+pub fn Field::exact(Int) -> Self
+pub fn Field::first(Self, FieldDomain) -> Int?
+pub fn Field::intersection(Self, Self, FieldDomain) -> Self
+pub fn Field::is_empty_in(Self, FieldDomain) -> Bool
+pub fn Field::is_full_in(Self, FieldDomain) -> Bool
+pub fn Field::is_subset_of(Self, Self, FieldDomain) -> Bool
+pub fn Field::last(Self, FieldDomain) -> Int?
+pub fn Field::list(Array[Self]) -> Self
 pub fn Field::matches(Self, Int, lower? : Int) -> Bool
+pub fn Field::next_at_or_after(Self, Int, FieldDomain) -> Int?
+pub fn Field::normalized(Self, FieldDomain) -> Self
+pub fn Field::overlaps(Self, Self, FieldDomain) -> Bool
+pub fn Field::previous_at_or_before(Self, Int, FieldDomain) -> Int?
+pub fn Field::range(Int, Int) -> Self
+pub fn Field::range_every(Int, Int, Int) -> Self
 pub fn Field::to_expression(Self) -> String
+pub fn Field::union(Self, Self, FieldDomain) -> Self
+pub fn Field::values(Self, FieldDomain) -> Array[Int]
+
+pub(all) enum FieldDomain {
+  MinuteDomain
+  HourDomain
+  DayOfMonthDomain
+  MonthDomain
+  WeekdayDomain
+} derive(Eq, @debug.Debug)
+pub fn FieldDomain::bounds(Self) -> (Int, Int)
+pub fn FieldDomain::name(Self) -> String
+
+pub(all) enum FrequencyClass {
+  Dormant
+  Sparse
+  Moderate
+  Frequent
+  Intense
+} derive(Eq, @debug.Debug)
+pub fn FrequencyClass::label(Self) -> String
+
+pub struct HourlyBucket {
+  hour : Int
+  count : Int
+} derive(Eq, @debug.Debug)
+
+pub struct NamedCollision {
+  left_name : String
+  right_name : String
+  at : UtcDateTime
+} derive(Eq, @debug.Debug)
+
+pub struct NamedSchedule {
+  name : String
+  cron : Cron
+  enabled : Bool
+} derive(Eq, @debug.Debug)
+pub fn NamedSchedule::new(String, Cron, enabled? : Bool) -> Result[Self, CronError]
+pub fn NamedSchedule::with_cron(Self, Cron) -> Result[Self, CronError]
+pub fn NamedSchedule::with_enabled(Self, Bool) -> Self
+
+pub struct OccurrenceCount {
+  count : Int
+  truncated : Bool
+} derive(Eq, @debug.Debug)
+
+pub struct OccurrenceGapSummary {
+  samples : Int
+  minimum_minutes : Int
+  maximum_minutes : Int
+  average_minutes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct OccurrencePage {
+  values : Array[UtcDateTime]
+  next_cursor : UtcDateTime?
+} derive(Eq, @debug.Debug)
+
+pub struct OccurrenceQuery {
+  range : DateTimeRange
+  limit : Int
+} derive(Eq, @debug.Debug)
+pub fn OccurrenceQuery::new(DateTimeRange, Int) -> Result[Self, CronError]
+
+pub struct PeakMinute {
+  at : UtcDateTime
+  schedule_names : Array[String]
+} derive(Eq, @debug.Debug)
+
+pub struct PolicyAudit {
+  effective_occurrences : Int
+  base_occurrences : Int
+  suppressed_occurrences : Int
+  included_occurrences : Int
+  truncated : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PolicyDecision {
+  Included(String)
+  Scheduled
+  Excluded(String)
+  Disabled
+  NotScheduled
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ReportHealth {
+  Healthy
+  NeedsAttention
+  Critical
+} derive(Eq, @debug.Debug)
+pub fn ReportHealth::label(Self) -> String
+
+pub struct ScheduleAudit {
+  total : Int
+  enabled : Int
+  disabled_names : Array[String]
+  dormant_names : Array[String]
+  collision_pairs : Int
+} derive(Eq, @debug.Debug)
+
+pub struct ScheduleBlackout {
+  range : DateTimeRange
+  reason : String
+} derive(Eq, @debug.Debug)
+pub fn ScheduleBlackout::contains(Self, UtcDateTime) -> Bool
+pub fn ScheduleBlackout::new(DateTimeRange, reason? : String) -> Self
+pub fn ScheduleBlackout::overlaps(Self, DateTimeRange) -> Bool
+
+pub struct ScheduleBook {
+  entries : Array[NamedSchedule]
+} derive(@debug.Debug)
+pub fn ScheduleBook::add(Self, NamedSchedule) -> Result[Unit, CronError]
+pub fn ScheduleBook::all(Self) -> Array[NamedSchedule]
+pub fn ScheduleBook::audit(Self, DateTimeRange) -> ScheduleAudit
+pub fn ScheduleBook::collisions(Self, DateTimeRange, per_pair_limit? : Int) -> Array[NamedCollision]
+pub fn ScheduleBook::contains(Self, String) -> Bool
+pub fn ScheduleBook::due_at(Self, UtcDateTime) -> Array[NamedSchedule]
+pub fn ScheduleBook::enabled_length(Self) -> Int
+pub fn ScheduleBook::enabled_only(Self) -> Self
+pub fn ScheduleBook::event_batches(Self, DateTimeRange, per_schedule_limit? : Int) -> Array[EventBatch]
+pub fn ScheduleBook::events(Self, DateTimeRange, per_schedule_limit? : Int) -> Array[ScheduledEvent]
+pub fn ScheduleBook::from_array(Array[NamedSchedule]) -> Result[Self, CronError]
+pub fn ScheduleBook::get(Self, String) -> NamedSchedule?
+pub fn ScheduleBook::length(Self) -> Int
+pub fn ScheduleBook::names(Self) -> Array[String]
+pub fn ScheduleBook::new() -> Self
+pub fn ScheduleBook::next_events_after(Self, UtcDateTime) -> Array[ScheduledEvent]
+pub fn ScheduleBook::remove(Self, String) -> Result[NamedSchedule, CronError]
+pub fn ScheduleBook::replace_cron(Self, String, Cron) -> Result[Unit, CronError]
+pub fn ScheduleBook::report(Self, DateTimeRange, per_schedule_limit? : Int, per_pair_limit? : Int) -> ScheduleReport
+pub fn ScheduleBook::set_enabled(Self, String, Bool) -> Result[Unit, CronError]
+pub fn ScheduleBook::to_text(Self) -> String
+pub fn ScheduleBook::upsert(Self, NamedSchedule) -> Unit
+
+pub struct ScheduleCollision {
+  at : UtcDateTime
+} derive(Eq, @debug.Debug)
+
+pub struct ScheduleInclusion {
+  at : UtcDateTime
+  reason : String
+} derive(Eq, @debug.Debug)
+pub fn ScheduleInclusion::new(UtcDateTime, reason? : String) -> Self
+
+pub struct SchedulePolicy {
+  cron : Cron
+  enabled : Bool
+  blackouts : Array[ScheduleBlackout]
+  inclusions : Array[ScheduleInclusion]
+} derive(Eq, @debug.Debug)
+pub fn SchedulePolicy::add_blackout(Self, ScheduleBlackout) -> Self
+pub fn SchedulePolicy::add_inclusion(Self, ScheduleInclusion) -> Self
+pub fn SchedulePolicy::all_blackouts(Self) -> Array[ScheduleBlackout]
+pub fn SchedulePolicy::all_inclusions(Self) -> Array[ScheduleInclusion]
+pub fn SchedulePolicy::audit(Self, DateTimeRange, limit? : Int) -> PolicyAudit
+pub fn SchedulePolicy::blackout_at(Self, UtcDateTime) -> ScheduleBlackout?
+pub fn SchedulePolicy::blackout_count(Self) -> Int
+pub fn SchedulePolicy::blackouts_in(Self, DateTimeRange) -> Array[ScheduleBlackout]
+pub fn SchedulePolicy::clear_exceptions(Self) -> Self
+pub fn SchedulePolicy::count_occurrences(Self, DateTimeRange, limit? : Int) -> OccurrenceCount
+pub fn SchedulePolicy::decision_at(Self, UtcDateTime) -> PolicyDecision
+pub fn SchedulePolicy::inclusion_at(Self, UtcDateTime) -> ScheduleInclusion?
+pub fn SchedulePolicy::inclusion_count(Self) -> Int
+pub fn SchedulePolicy::inclusions_in(Self, DateTimeRange) -> Array[ScheduleInclusion]
+pub fn SchedulePolicy::matches_at(Self, UtcDateTime) -> Bool
+pub fn SchedulePolicy::new(Cron, enabled? : Bool) -> Result[Self, CronError]
+pub fn SchedulePolicy::next_after(Self, UtcDateTime) -> UtcDateTime?
+pub fn SchedulePolicy::next_on_or_after(Self, UtcDateTime) -> UtcDateTime?
+pub fn SchedulePolicy::occurrences(Self, DateTimeRange, limit? : Int) -> Array[UtcDateTime]
+pub fn SchedulePolicy::previous_before(Self, UtcDateTime) -> UtcDateTime?
+pub fn SchedulePolicy::previous_on_or_before(Self, UtcDateTime) -> UtcDateTime?
+pub fn SchedulePolicy::remove_blackout(Self, DateTimeRange) -> Self
+pub fn SchedulePolicy::remove_inclusion(Self, UtcDateTime) -> Self
+pub fn SchedulePolicy::with_cron(Self, Cron) -> Result[Self, CronError]
+pub fn SchedulePolicy::with_enabled(Self, Bool) -> Self
+
+pub struct ScheduleReport {
+  range : DateTimeRange
+  schedules : Array[ScheduleStatistics]
+  collisions : Array[CollisionStatistics]
+  daily_load : Array[DailyLoad]
+  total_events : Int
+  peak : PeakMinute?
+  truncated : Bool
+} derive(Eq, @debug.Debug)
+pub fn ScheduleReport::active_day_count(Self) -> Int
+pub fn ScheduleReport::average_events_per_active_day(Self) -> Int
+pub fn ScheduleReport::busiest_day(Self) -> DailyLoad?
+pub fn ScheduleReport::colliding_names(Self) -> Array[String]
+pub fn ScheduleReport::collision_for(Self, String, String) -> CollisionStatistics?
+pub fn ScheduleReport::collision_pair_count(Self) -> Int
+pub fn ScheduleReport::dormant_names(Self) -> Array[String]
+pub fn ScheduleReport::health(Self) -> ReportHealth
+pub fn ScheduleReport::intense_names(Self) -> Array[String]
+pub fn ScheduleReport::load_on(Self, UtcDate) -> DailyLoad?
+pub fn ScheduleReport::peak_concurrency(Self) -> Int
+pub fn ScheduleReport::recommendations(Self) -> Array[String]
+pub fn ScheduleReport::schedule_count(Self) -> Int
+pub fn ScheduleReport::statistics_for(Self, String) -> ScheduleStatistics?
+pub fn ScheduleReport::to_text(Self) -> String
+
+pub struct ScheduleStatistics {
+  name : String
+  enabled : Bool
+  occurrence_count : Int
+  truncated : Bool
+  first : UtcDateTime?
+  last : UtcDateTime?
+  active_days : Int
+  minimum_gap_minutes : Int?
+  maximum_gap_minutes : Int?
+  average_gap_minutes : Int?
+  frequency : FrequencyClass
+  hourly : Array[HourlyBucket]
+  weekdays : Array[WeekdayBucket]
+} derive(Eq, @debug.Debug)
+pub fn ScheduleStatistics::busiest_hour(Self) -> HourlyBucket?
+pub fn ScheduleStatistics::busiest_weekday(Self) -> WeekdayBucket?
+pub fn ScheduleStatistics::hour_count(Self, Int) -> Int
+pub fn ScheduleStatistics::weekday_count(Self, Int) -> Int
+
+pub struct ScheduledEvent {
+  schedule_name : String
+  at : UtcDateTime
+} derive(Eq, @debug.Debug)
+
+pub struct UtcDate {
+  year : Int
+  month : Int
+  day : Int
+} derive(Compare, Eq, @debug.Debug)
+pub fn UtcDate::add_days(Self, Int) -> Self?
+pub fn UtcDate::at(Self, Int, Int) -> Result[UtcDateTime, CronError]
+pub fn UtcDate::days_until(Self, Self) -> Int
+pub fn UtcDate::end(Self) -> UtcDateTime
+pub fn UtcDate::new(Int, Int, Int) -> Result[Self, CronError]
+pub fn UtcDate::start(Self) -> UtcDateTime
+pub fn UtcDate::to_iso8601(Self) -> String
 
 pub struct UtcDateTime {
   year : Int
@@ -69,7 +456,12 @@ pub struct UtcDateTime {
   hour : Int
   minute : Int
 } derive(Compare, Eq, @debug.Debug)
+pub fn UtcDateTime::add_days(Self, Int) -> Self?
+pub fn UtcDateTime::add_minutes(Self, Int) -> Self?
+pub fn UtcDateTime::date(Self) -> UtcDate
+pub fn UtcDateTime::minutes_until(Self, Self) -> Int
 pub fn UtcDateTime::new(Int, Int, Int, Int, Int) -> Result[Self, CronError]
+pub fn UtcDateTime::to_iso8601(Self) -> String
 pub fn UtcDateTime::to_utc_time(Self) -> UtcTime
 pub fn UtcDateTime::weekday(Self) -> Int
 
@@ -81,6 +473,11 @@ pub struct UtcTime {
   weekday : Int
 } derive(Eq, @debug.Debug)
 pub fn UtcTime::new(Int, Int, Int, Int, Int) -> Self
+
+pub struct WeekdayBucket {
+  weekday : Int
+  count : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 
