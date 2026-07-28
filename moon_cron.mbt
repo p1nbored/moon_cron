@@ -43,6 +43,7 @@ pub enum CronError {
   UnsupportedSyntax(String)
   InvalidDate(String)
   InvalidField(String)
+  InvalidWindow(String)
 } derive(Eq, Debug)
 
 ///|
