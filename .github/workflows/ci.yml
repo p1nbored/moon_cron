@@ -16,11 +16,24 @@ jobs:
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-      - name: Check all stable targets
-        run: moon check --target all --deny-warn
-      - name: Run tests on all stable targets
-        run: moon test --target all --deny-warn
+      - name: Show toolchain
+        run: moon version --all
       - name: Ensure formatting is clean
         run: moon fmt --check
-      - name: Generate package interfaces
-        run: moon info
+      - name: Check all stable targets
+        run: moon check --target all --deny-warn
+      - name: Build all stable targets
+        run: moon build --target all --deny-warn
+      - name: Run tests on all stable targets
+        run: moon test --target all --deny-warn
+      - name: Run example
+        run: moon run cmd/main
+      - name: Enforce production workload
+        shell: pwsh
+        run: ./scripts/count-production-lines.ps1 -Minimum 4000
+      - name: Verify generated package interfaces
+        run: |
+          moon info
+          git diff --exit-code
+      - name: Package release archive
+        run: moon package

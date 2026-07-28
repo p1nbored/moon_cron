@@ -3,5 +3,6 @@
 set -eu
 
 moon check --target all --deny-warn
+moon build --target all --deny-warn
 moon test --target all --deny-warn
 moon fmt --check
