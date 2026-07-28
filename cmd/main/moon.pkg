@@ -2,6 +2,4 @@ import {
   "p1nbored/moon_cron" @cron,
 }
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")

@@ -44,6 +44,8 @@ pub enum CronError {
   InvalidDate(String)
   InvalidField(String)
   InvalidWindow(String)
+  DuplicateSchedule(String)
+  MissingSchedule(String)
 } derive(Eq, Debug)
 
 ///|
