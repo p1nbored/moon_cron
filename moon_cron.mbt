@@ -46,6 +46,7 @@ pub enum CronError {
   InvalidWindow(String)
   DuplicateSchedule(String)
   MissingSchedule(String)
+  InvalidCrontabLine(Int, String)
 } derive(Eq, Debug)
 
 ///|
